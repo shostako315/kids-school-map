@@ -2,75 +2,80 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kids School Finder Platinum - Smart Edition</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Kids School Finder Mobile Pro</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
     :root {
-      --brand: #4f46e5; --brand-light: #eef2ff;
+      --brand: #4f46e5; --brand-hover: #4338ca;
       --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
-      --fav: #f59e0b;
+      --fav: #f59e0b; --safe-area-bottom: env(safe-area-inset-bottom);
     }
-    * { box-sizing: border-box; outline: none; }
-    body { margin: 0; font-family: "Inter", "Hiragino Sans", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; font-family: "Inter", "Hiragino Sans", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: row; overflow: hidden; }
 
-    /* サイドバー */
-    #left { width: 420px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 1000; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
+    /* サイドバー (Desktop) */
+    #left { width: 400px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 1000; transition: transform 0.3s ease; }
     
-    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-    .sidebar-header strong { font-size: 18px; letter-spacing: -0.5px; }
+    .sidebar-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #fff; }
+    .sidebar-header strong { font-size: 18px; display: flex; align-items: center; gap: 8px; }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: #fdfdfd; }
     .tab { flex: 1; padding: 14px; text-align: center; cursor: pointer; font-size: 14px; font-weight: 700; color: var(--muted); position: relative; }
     .tab.active { color: var(--brand); }
     .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--brand); }
 
-    .scroll-area { flex: 1; overflow-y: auto; padding: 20px; }
+    .scroll-area { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
 
-    /* 検索セクション */
-    .filter-group { background: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-    label { font-size: 12px; font-weight: 800; color: var(--muted); display: block; margin-bottom: 8px; }
-    input[type="text"], select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; font-size: 14px; margin-bottom: 12px; }
-    
-    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-    .cat-item { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 6px; border-radius: 6px; background: #fff; border: 1px solid var(--border); }
-    .cat-item input { margin: 0; }
+    /* 検索パネル */
+    .filter-section { background: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .cat-label { display: flex; align-items: center; gap: 6px; font-size: 12px; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
 
-    .btn-search { width: 100%; padding: 12px; background: var(--brand); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-    .btn-search:hover { background: var(--brand-hover); }
+    input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 12px; font-size: 16px; } /* Mobile zoom 防止で16px */
+
+    .btn-search { width: 100%; padding: 14px; background: var(--brand); color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
 
     /* カード */
-    .s-card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fff; cursor: pointer; position: relative; transition: 0.2s; }
-    .s-card:hover { border-color: var(--brand); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .s-name { font-weight: 800; font-size: 15px; padding-right: 30px; margin-bottom: 5px; color: var(--brand); }
-    .s-meta { font-size: 12px; color: var(--muted); }
-    .fav-star { position: absolute; top: 16px; right: 16px; font-size: 18px; color: #cbd5e1; cursor: pointer; }
+    .s-card { border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; background: #fff; position: relative; transition: 0.2s; }
+    .s-name { font-weight: 800; font-size: 15px; color: var(--brand); margin-bottom: 4px; padding-right: 32px; }
+    .fav-star { position: absolute; top: 16px; right: 16px; font-size: 20px; color: #cbd5e1; padding: 4px; }
     .fav-star.active { color: var(--fav); }
 
     /* マップ */
-    #right { flex: 1; position: relative; }
+    #right { flex: 1; position: relative; height: 100%; }
     #map { width: 100%; height: 100%; }
-    #loading { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; background: var(--brand); color: white; padding: 8px 20px; border-radius: 30px; display: none; font-size: 13px; font-weight: 700; }
+
+    /* スマホ専用: ボトムナビゲーション */
+    #mobile-nav { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; background: var(--text); color: #fff; padding: 6px; border-radius: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); display: none; gap: 4px; }
+    .nav-btn { border: none; background: transparent; color: #fff; padding: 10px 20px; border-radius: 30px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .nav-btn.active { background: var(--brand); }
 
     /* 詳細モーダル */
-    #detail-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
-    .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; }
-    .close-modal { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 20px; color: var(--muted); }
-    .modal-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 15px; }
-    .modal-btn { display: block; width: 100%; padding: 15px; background: var(--brand); color: white; text-align: center; text-decoration: none; border-radius: 10px; font-weight: 800; margin-top: 20px; }
+    #detail-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; align-items: flex-end; justify-content: center; }
+    .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 24px 24px 0 0; padding: 32px 24px 40px; position: relative; animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .close-modal { position: absolute; top: 16px; right: 20px; font-size: 24px; color: var(--muted); padding: 10px; }
+    .modal-btn { display: block; width: 100%; padding: 18px; background: var(--brand); color: white; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; margin-top: 24px; font-size: 16px; }
 
+    /* ローディング */
+    #loading { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2500; background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; }
+
+    /* モバイルレスポンシブ設定 */
     @media (max-width: 900px) {
-      body { flex-direction: column; overflow: auto; }
-      #left { width: 100%; height: auto; }
-      #map { height: 400px; }
+      body { flex-direction: column; }
+      #left { width: 100%; position: absolute; top: 0; left: 0; height: 100%; transform: translateY(100%); }
+      #left.show { transform: translateY(0); }
+      #right { height: 100vh; }
+      #mobile-nav { display: flex; }
+      .sidebar-header { padding-top: 10px; }
     }
   </style>
 </head>
@@ -78,196 +83,165 @@
 
 <aside id="left">
   <div class="sidebar-header">
-    <i class="fas fa-graduation-cap" style="color:var(--brand); font-size:24px;"></i>
-    <strong>Kids School Finder</strong>
+    <strong><i class="fas fa-graduation-cap" style="color:var(--brand)"></i> School Finder</strong>
   </div>
-
   <div class="tabs">
     <div class="tab active" id="tab-search" onclick="switchTab('search')">探す</div>
-    <div class="tab" id="tab-fav" onclick="switchTab('fav')">★ お気に入り (<span id="fav-count">0</span>)</div>
+    <div class="tab" id="tab-fav" onclick="switchTab('fav')">★ キープ (<span id="fav-count">0</span>)</div>
   </div>
-
-  <div class="scroll-area" id="search-panel">
-    <div class="filter-group">
-      <label><i class="fas fa-map-marker-alt"></i> エリア検索（都内高速版）</label>
-      <input type="text" id="loc-input" placeholder="駅名・住所を入力...">
-      
-      <label><i class="fas fa-tags"></i> カテゴリ絞り込み</label>
+  <div class="scroll-area" id="panel-search">
+    <div class="filter-section">
+      <input type="text" id="loc-input" placeholder="駅名・場所で検索...">
       <div class="cat-grid" id="cat-grid"></div>
-
-      <label><i class="fas fa-arrows-alt-h"></i> 検索半径</label>
       <select id="radius-select">
         <option value="1000">1km以内</option>
         <option value="3000" selected>3km以内</option>
         <option value="5000">5km以内</option>
       </select>
-
-      <button class="btn-search" onclick="executeSearch()"><i class="fas fa-search"></i> 検索を実行</button>
+      <button class="btn-search" onclick="executeSearch()">このエリアを検索</button>
     </div>
-
     <div id="results-list"></div>
   </div>
-
-  <div class="scroll-area" id="fav-panel" style="display:none;">
+  <div class="scroll-area" id="panel-fav" style="display:none;">
     <div id="fav-list"></div>
   </div>
 </aside>
 
 <main id="right">
-  <div id="loading"><i class="fas fa-sync fa-spin"></i> データを取得中...</div>
+  <div id="loading">読込中...</div>
   <div id="map"></div>
 </main>
 
-<div id="detail-modal">
-  <div class="modal-content" id="modal-inner">
-    </div>
+<nav id="mobile-nav">
+  <button class="nav-btn active" id="nav-map" onclick="toggleMobileView('map')"><i class="fas fa-map"></i> 地図</button>
+  <button class="nav-btn" id="nav-list" onclick="toggleMobileView('list')"><i class="fas fa-list"></i> リスト</button>
+</nav>
+
+<div id="detail-modal" onclick="if(event.target==this)closeModal()">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></span>
+    <div id="modal-body"></div>
+  </div>
 </div>
 
 <script>
-  // カテゴリ・カラー設定
   const CAT_INFO = {
     kindergarten: { color: '#ec4899', icon: 'fa-child', label: '幼稚園・保育園' },
     school: { color: '#3b82f6', icon: 'fa-school', label: '小学校・中学校' },
-    tutoring_centre: { color: '#8b5cf6', icon: 'fa-pencil-alt', label: '学習塾・くもん' },
+    tutoring_centre: { color: '#8b5cf6', icon: 'fa-pencil-alt', label: '学習塾' },
     language_school: { color: '#f59e0b', icon: 'fa-language', label: '英会話' },
     music_school: { color: '#10b981', icon: 'fa-music', label: '音楽教室' },
     sports_centre: { color: '#ef4444', icon: 'fa-running', label: 'スポーツ' },
     coding_school: { color: '#0ea5e9', icon: 'fa-code', label: 'プログラミング' }
   };
 
-  // UI生成
   const grid = document.getElementById('cat-grid');
-  Object.keys(CAT_INFO).forEach(key => {
-    const item = CAT_INFO[key];
-    grid.innerHTML += `<label class="cat-item"><input type="checkbox" value="${key}" checked> ${item.label}</label>`;
+  Object.keys(CAT_INFO).forEach(k => {
+    grid.innerHTML += `<label class="cat-label"><input type="checkbox" value="${k}" checked> ${CAT_INFO[k].label}</label>`;
   });
 
-  // マップ初期化
   const map = L.map('map', { zoomControl: false }).setView([35.681, 139.767], 14);
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.control.zoom({ position: 'topright' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  const clusters = L.markerClusterGroup().addTo(map);
+  const clusters = L.markerClusterGroup({ spiderfyOnMaxZoom: true }).addTo(map);
 
-  let currentResults = [];
-  let favorites = JSON.parse(localStorage.getItem('smart_favs') || '[]');
-  let activeTab = 'search';
+  let results = [], favorites = JSON.parse(localStorage.getItem('ksf_favs') || '[]'), activeTab = 'search';
 
-  // --- 検索 ---
   async function executeSearch() {
     const loc = document.getElementById('loc-input').value;
     if(loc) {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&viewbox=139.5,35.8,140.0,35.5&bounded=1`);
-      const data = await res.json();
-      if(data[0]) map.setView([data[0].lat, data[0].lon], 15);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&viewbox=139.5,35.8,140.0,35.5&bounded=1`);
+      const d = await r.json();
+      if(d[0]) map.setView([d[0].lat, d[0].lon], 15);
     }
     fetchData();
+    if(window.innerWidth <= 900) toggleMobileView('map');
   }
 
   async function fetchData() {
-    const loader = document.getElementById('loading');
-    loader.style.display = 'block';
-    
-    const center = map.getCenter();
-    const radius = document.getElementById('radius-select').value;
+    document.getElementById('loading').style.display = 'block';
+    const c = map.getCenter(), rad = document.getElementById('radius-select').value;
     const cats = Array.from(document.querySelectorAll('#cat-grid input:checked')).map(i => i.value).join('|');
-    
-    const query = `[out:json][timeout:15];(nwr["amenity"~"${cats}"](around:${radius},${center.lat},${center.lng}););out center;`;
-
+    const q = `[out:json][timeout:15];(nwr["amenity"~"${cats}"](around:${rad},${c.lat},${c.lng}););out center;`;
     try {
-      const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
+      const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) });
       const data = await res.json();
-      currentResults = data.elements.map(e => ({
-        id: e.id,
-        name: e.tags.name || e.tags["name:ja"] || "名称不明の施設",
+      results = data.elements.map(e => ({
+        id: e.id, name: e.tags.name || e.tags["name:ja"] || "名称不明",
         lat: e.lat || e.center.lat, lon: e.lon || e.center.lon,
-        type: e.tags.amenity, addr: e.tags["addr:full"] || "住所情報なし",
+        type: e.tags.amenity, addr: e.tags["addr:full"] || "東京都内",
         url: e.tags.website || e.tags.url || `https://www.google.com/search?q=${encodeURIComponent(e.tags.name || "")}`
       }));
       renderUI();
-    } catch(e) { alert("データ取得エラー"); }
-    finally { loader.style.display = 'none'; }
+    } finally { document.getElementById('loading').style.display = 'none'; }
   }
 
   function renderUI() {
     clusters.clearLayers();
-    const listEl = document.getElementById(activeTab === 'search' ? 'results-list' : 'fav-list');
-    listEl.innerHTML = "";
+    const list = document.getElementById(activeTab === 'search' ? 'results-list' : 'fav-list');
+    list.innerHTML = "";
     document.getElementById('fav-count').innerText = favorites.length;
-
-    const data = activeTab === 'search' ? currentResults : favorites;
+    const data = activeTab === 'search' ? results : favorites;
 
     data.forEach(item => {
       const isFav = favorites.some(f => f.id === item.id);
       const conf = CAT_INFO[item.type] || { color: '#64748b', icon: 'fa-location-dot' };
-
-      // マーカーカラー設定
-      const icon = L.divIcon({
-        html: `<div style="background:${conf.color}; width:30px; height:30px; border-radius:50%; border:2px solid white; color:white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);">
-                <i class="fas ${conf.icon}" style="font-size:12px;"></i>
-               </div>`,
-        className: '', iconSize: [30, 30]
-      });
-
-      const m = L.marker([item.lat, item.lon], { icon }).addTo(clusters);
+      const m = L.marker([item.lat, item.lon], {
+        icon: L.divIcon({
+          html: `<div style="background:${conf.color}; width:32px; height:32px; border-radius:50%; border:2px solid #fff; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(0,0,0,0.2);"><i class="fas ${conf.icon}" style="font-size:12px;"></i></div>`,
+          className: '', iconSize: [32, 32]
+        })
+      }).addTo(clusters);
       m.on('click', () => openModal(item));
 
-      // カード
       const card = document.createElement('div');
       card.className = "s-card";
-      card.innerHTML = `
-        <i class="fa-star ${isFav ? 'fas active' : 'far'} fav-star" onclick="toggleFav(${item.id}, event)"></i>
-        <div class="s-name" onclick="openModalById(${item.id})">${item.name}</div>
-        <div class="s-meta">${conf.label}</div>
-      `;
-      listEl.appendChild(card);
+      card.innerHTML = `<i class="fa-star ${isFav?'fas active':'far'} fav-star" onclick="toggleFav(${item.id},event)"></i><div class="s-name" onclick="openModalById(${item.id})">${item.name}</div><div class="s-meta">${conf.label}</div>`;
+      list.appendChild(card);
     });
   }
 
-  // --- お気に入り ---
   function toggleFav(id, e) {
-    if(e) e.stopPropagation();
-    const item = currentResults.find(r => r.id === id) || favorites.find(f => f.id === id);
+    e.stopPropagation();
+    const item = results.find(r => r.id === id) || favorites.find(f => f.id === id);
     const idx = favorites.findIndex(f => f.id === id);
-    if(idx > -1) favorites.splice(idx, 1);
-    else favorites.push(item);
-    localStorage.setItem('smart_favs', JSON.stringify(favorites));
+    if(idx > -1) favorites.splice(idx, 1); else favorites.push(item);
+    localStorage.setItem('ksf_favs', JSON.stringify(favorites));
     renderUI();
   }
 
-  // --- モーダル ---
   function openModal(item) {
     const conf = CAT_INFO[item.type] || { color: '#64748b', label: 'スクール' };
-    const modal = document.getElementById('detail-modal');
-    document.getElementById('modal-inner').innerHTML = `
-      <span class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></span>
-      <span class="modal-tag" style="background:${conf.color}15; color:${conf.color}">${conf.label}</span>
-      <h2 style="margin:0 0 10px 0; font-size:24px;">${item.name}</h2>
-      <p style="color:var(--muted); font-size:14px;"><i class="fas fa-map-marker-alt"></i> ${item.addr}</p>
-      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
-        <p style="font-size:13px; line-height:1.6; color:#444;">地図から詳細を確認し、公式サイトで最新の開講スケジュールや入会キャンペーンをチェックしましょう。</p>
-      </div>
-      <a href="${item.url}" target="_blank" class="modal-btn"><i class="fas fa-external-link-alt"></i> 公式サイトへ移動</a>
+    document.getElementById('modal-body').innerHTML = `
+      <div style="background:${conf.color}15; color:${conf.color}; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:800; margin-bottom:12px;">${conf.label}</div>
+      <h2 style="margin:0 0 8px 0; font-size:22px;">${item.name}</h2>
+      <p style="color:var(--muted); font-size:14px; margin-bottom:20px;"><i class="fas fa-map-marker-alt"></i> ${item.addr}</p>
+      <a href="${item.url}" target="_blank" class="modal-btn">公式サイトを開く</a>
     `;
-    modal.style.display = 'flex';
+    document.getElementById('detail-modal').style.display = 'flex';
   }
 
-  function openModalById(id) {
-    const item = currentResults.find(r => r.id === id) || favorites.find(f => f.id === id);
-    openModal(item);
-  }
-
+  function openModalById(id) { openModal(results.find(r => r.id === id) || favorites.find(f => f.id === id)); }
   function closeModal() { document.getElementById('detail-modal').style.display = 'none'; }
 
   function switchTab(t) {
     activeTab = t;
-    document.getElementById('tab-search').className = `tab ${t==='search'?'active':''}`;
-    document.getElementById('tab-fav').className = `tab ${t==='fav'?'active':''}`;
-    document.getElementById('search-panel').style.display = t==='search'?'block':'none';
-    document.getElementById('fav-panel').style.display = t==='fav'?'block':'none';
+    document.getElementById('tab-search').classList.toggle('active', t==='search');
+    document.getElementById('tab-fav').classList.toggle('active', t==='fav');
+    document.getElementById('panel-search').style.display = t==='search'?'block':'none';
+    document.getElementById('panel-fav').style.display = t==='fav'?'block':'none';
     renderUI();
   }
 
-  // 初回ロード
+  // スマホ表示切替
+  function toggleMobileView(v) {
+    const left = document.getElementById('left');
+    const isMap = v === 'map';
+    left.classList.toggle('show', !isMap);
+    document.getElementById('nav-map').classList.toggle('active', isMap);
+    document.getElementById('nav-list').classList.toggle('active', !isMap);
+  }
+
   executeSearch();
 </script>
 </body>
