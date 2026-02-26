@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>近くの子ども向けスクール検索（ガワ）</title>
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#0b0f14; color:#e8eef6;}
+    header{ padding:14px 16px; border-bottom:1px solid #1b2633; display:flex; gap:10px; align-items:center;}
+    header strong{ font-size:14px; letter-spacing:.2px;}
+    #app{ display:grid; grid-template-columns: 360px 1fr; height: calc(100vh - 52px);}
+    #left{ border-right:1px solid #1b2633; overflow:auto; padding:12px;}
+    #map{ width:100%; height:100%;}
+    .card{ background:#101823; border:1px solid #1b2633; border-radius:12px; padding:12px; margin-bottom:12px;}
+    label{ font-size:12px; opacity:.85; display:block; margin:10px 0 6px;}
+    select, input{ width:100%; padding:10px; border-radius:10px; border:1px solid #233347; background:#0b0f14; color:#e8eef6;}
+    button{ width:100%; padding:10px; border-radius:10px; border:0; font-weight:700; cursor:pointer; background:#6ee7ff; color:#061018; margin-top:10px;}
+    ul{ list-style:none; padding:0; margin:0;}
+    li{ padding:10px; border-radius:10px; border:1px solid #1b2633; margin-bottom:8px; cursor:pointer; background:#0f1621;}
+    li:hover{ border-color:#335a86;}
+    .title{ font-weight:700; font-size:13px; }
+    .meta{ font-size:12px; opacity:.8; margin-top:4px; line-height:1.3;}
+    .detail a{ color:#6ee7ff; text-decoration:none;}
+    .badge{ display:inline-block; font-size:11px; padding:3px 8px; border:1px solid #233347; border-radius:999px; margin-right:6px; opacity:.9;}
+    .row{ display:flex; gap:8px;}
+    .row > div { flex:1;}
+  </style>
+</head>
+
+<body>
+<header>
+  <strong>近くの子ども向け塾/スクール検索（ガワ）</strong>
+  <span style="opacity:.7;font-size:12px;">OSM Overpass + Mapbox</span>
+</header>
+
+<div id="app">
+  <aside id="left">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>半径</label>
+          <select id="radius">
+            <option value="500">500m</option>
+            <option value="1000" selected>1km</option>
+            <option value="2000">2km</option>
+            <option value="5000">5km</option>
+          </select>
+        </div>
+        <div>
+          <label>カテゴリ</label>
+          <select id="category">
+            <option value="kindergarten">幼稚園/保育（kindergarten）</option>
+            <option value="school" selected>学校（school）</option>
+            <option value="language_school">語学教室（language_school）</option>
+            <option value="music_school">音楽教室（music_school）</option>
+            <option value="all">全部（上記をまとめて）</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btn">現在地周辺を検索</button>
+      <div style="margin-top:10px;font-size:12px;opacity:.75;">
+        ※「紹介文の自動取得」はガワでは未実装（外部リンクを表示）。<br/>
+      </div>
+    </div>
+
+    <div class="card detail" id="detail">
+      <div style="opacity:.7;font-size:12px;">ピンを選ぶと詳細が出ます</div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">検索結果</div>
+      <ul id="list"></ul>
+    </div>
+  </aside>
+
+  <main id="map"></main>
+</div>
+
+<script>
+  // 1) Mapbox token を入れる（無料アカウントでOK）
+  mapboxgl.accessToken = "YOUR_MAPBOX_ACCESS_TOKEN";
+
+  const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/dark-v11",
+    center: [139.767, 35.681], // 東京駅あたり（初期）
+    zoom: 13
+  });
+
+  let markers = [];
+  let lastCenter = null;
+
+  function clearMarkers(){
+    markers.forEach(m => m.remove());
+    markers = [];
+  }
+
+  function setDetail(el){
+    const d = document.getElementById("detail");
+    d.innerHTML = el;
+  }
+
+  function overpassQuery(lat, lon, radius, category){
+    const types = (category === "all")
+      ? ["school","kindergarten","language_school","music_school"]
+      : [category];
+
+    // node / way / relation をまとめて取得
+    const filters = types.map(t => `
+      nwr["amenity"="${t}"](around:${radius},${lat},${lon});
+    `).join("");
+
+    return `
+      [out:json][timeout:25];
+      (
+        ${filters}
+      );
+      out center tags;
+    `;
+  }
+
+  async function runSearch(){
+    if(!navigator.geolocation){
+      alert("このブラウザは位置情報に対応していません。");
+      return;
+    }
+
+    setDetail(`<div style="opacity:.8;font-size:12px;">検索中…</div>`);
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const radius = document.getElementById("radius").value;
+      const category = document.getElementById("category").value;
+
+      lastCenter = {lat, lon};
+      map.flyTo({ center:[lon,lat], zoom:14 });
+
+      const q = overpassQuery(lat, lon, radius, category);
+      const url = "https://overpass-api.de/api/interpreter";
+
+      clearMarkers();
+      document.getElementById("list").innerHTML = "";
+
+      try{
+        const res = await fetch(url, {
+          method:"POST",
+          headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+          body: "data=" + encodeURIComponent(q)
+        });
+        const data = await res.json();
+
+        const items = (data.elements || []).map(e => {
+          const name = (e.tags && (e.tags.name || e.tags["name:ja"])) || "(名称なし)";
+          const amenity = e.tags?.amenity || "";
+          const website = e.tags?.website || e.tags?.url || "";
+          const addr = [
+            e.tags?.["addr:full"],
+            e.tags?.["addr:prefecture"],
+            e.tags?.["addr:city"],
+            e.tags?.["addr:suburb"],
+            e.tags?.["addr:street"],
+            e.tags?.["addr:housenumber"]
+          ].filter(Boolean).join(" ");
+
+          const lat2 = e.lat ?? e.center?.lat;
+          const lon2 = e.lon ?? e.center?.lon;
+          return { id: e.id, type:e.type, name, amenity, website, addr, lat:lat2, lon:lon2, tags:e.tags || {} };
+        }).filter(x => x.lat && x.lon);
+
+        // 簡易ソート：名前あり優先
+        items.sort((a,b) => (a.name==="(名称なし)") - (b.name==="(名称なし)"));
+
+        items.forEach((it, idx) => {
+          const m = new mapboxgl.Marker()
+            .setLngLat([it.lon, it.lat])
+            .addTo(map);
+
+          m.getElement().style.cursor = "pointer";
+          m.getElement().addEventListener("click", () => showItem(it));
+
+          markers.push(m);
+
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="title">${idx+1}. ${escapeHtml(it.name)}</div>
+            <div class="meta">
+              <span class="badge">${escapeHtml(it.amenity)}</span>
+              ${it.addr ? escapeHtml(it.addr) : "住所情報なし"}
+            </div>
+          `;
+          li.onclick = () => { map.flyTo({center:[it.lon,it.lat], zoom:16}); showItem(it); };
+          document.getElementById("list").appendChild(li);
+        });
+
+        setDetail(`<div style="font-size:12px;opacity:.85;">${items.length}件ヒット。リストかピンをクリック。</div>`);
+        if(items[0]) showItem(items[0]);
+
+      }catch(err){
+        console.error(err);
+        setDetail(`<div style="color:#ffb4b4;font-size:12px;">取得に失敗しました。時間を置いて再試行してください。</div>`);
+      }
+    }, (err) => {
+      alert("位置情報の取得に失敗しました。ブラウザの許可を確認してください。");
+      console.error(err);
+    }, { enableHighAccuracy:false, timeout:10000 });
+  }
+
+  function showItem(it){
+    const gmap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.name)}&query_place_id=`;
+    const search = `https://www.google.com/search?q=${encodeURIComponent(it.name + " " + (it.addr||""))}`;
+    const website = it.website ? `<div><a href="${it.website}" target="_blank" rel="noreferrer">公式サイト</a></div>` : "";
+
+    setDetail(`
+      <div class="title" style="font-size:14px;">${escapeHtml(it.name)}</div>
+      <div class="meta" style="margin-top:8px;">
+        <span class="badge">${escapeHtml(it.amenity)}</span>
+        ${it.addr ? escapeHtml(it.addr) : "住所情報なし"}
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="${search}" target="_blank" rel="noreferrer">紹介を検索</a>
+        <a href="${gmap}" target="_blank" rel="noreferrer">地図で見る</a>
+      </div>
+      ${website ? `<div style="margin-top:8px;">${website}</div>` : ""}
+      <div style="margin-top:10px;font-size:11px;opacity:.7;">
+        ※ガワ版：紹介文の自動取得は未実装（規約/品質の都合でリンク表示）。
+      </div>
+    `);
+  }
+
+  function escapeHtml(str){
+    return (str||"").replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  }
+
+  document.getElementById("btn").addEventListener("click", runSearch);
+
+  // 初回：地図表示だけ出す
+  setDetail(`<div style="font-size:12px;opacity:.85;">「現在地周辺を検索」を押すと、学校/教室を表示します。</div>`);
+</script>
+</body>
+</html>
