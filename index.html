@@ -3,306 +3,286 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kids School Finder Pro</title>
+  <title>Kids School Finder - エリア検索版</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    :root{
-      --bg:#0f172a;
-      --panel:#1e293b;
-      --border:#334155;
-      --text:#f8fafc;
-      --muted:#94a3b8;
-      --accent:#38bdf8;
-      --favorite:#fbbf24;
-      --danger:#f87171;
+    :root {
+      --primary: #4f46e5;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #f59e0b;
     }
-    *{ box-sizing:border-box; }
-    body { margin:0; font-family: sans-serif; background:var(--bg); color:var(--text); overflow: hidden; }
-    
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
     header {
-      height: 60px;
-      padding: 0 20px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 1000;
+      height: 60px; padding: 0 20px; background: var(--panel); border-bottom: 2px solid var(--primary);
+      display: flex; align-items: center; justify-content: space-between; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    #app {
-      display: flex;
-      height: calc(100vh - 60px);
-    }
+    #app { display: flex; height: calc(100vh - 60px); }
 
-    /* Sidebar Area */
-    #left {
-      width: 400px;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
-    }
-    .scroll-area { overflow-y: auto; flex: 1; padding: 16px; }
+    /* サイドバー */
+    #left { width: 420px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--panel); }
+    .scroll-area { overflow-y: auto; flex: 1; padding: 20px; }
 
-    /* Controls */
-    .filter-group { margin-bottom: 16px; }
-    label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
-    select, input {
-      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--bg); color: var(--text); font-size: 14px;
-    }
-
-    .btn-main {
-      width: 100%; padding: 12px; border-radius: 8px; border: 0; font-weight: bold;
-      background: var(--accent); color: #0f172a; cursor: pointer; transition: opacity 0.2s;
-    }
-    .btn-main:disabled { opacity: 0.5; }
-
-    /* List Items */
-    .list-item {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px; margin-bottom: 10px; cursor: pointer; position: relative;
-    }
-    .list-item:hover { border-color: var(--accent); }
-    .list-item.active { border-color: var(--accent); ring: 2px solid var(--accent); }
-    .item-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; padding-right: 25px; }
-    .item-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
-    .tag { background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .search-card { background: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 12px; }
+    label { font-size: 13px; font-weight: bold; color: var(--text); margin-bottom: 6px; display: block; }
     
-    .fav-btn {
-      position: absolute; top: 12px; right: 12px; border: 0; background: transparent;
-      color: var(--muted); cursor: pointer; font-size: 18px;
+    input, select {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: #fff; color: var(--text); font-size: 14px;
     }
-    .fav-btn.is-fav { color: var(--favorite); }
 
-    /* Map Area */
+    .btn-container { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-main {
+      flex: 1; padding: 12px; border-radius: 8px; border: 0; font-weight: bold;
+      background: var(--primary); color: white; cursor: pointer; transition: 0.2s;
+    }
+    .btn-sub {
+      background: #fff; border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 8px; cursor: pointer;
+    }
+
+    /* 検索結果リスト */
+    .list-item {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px;
+      cursor: pointer; position: relative; transition: 0.2s; background: #fff;
+    }
+    .list-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: var(--primary); }
+    .item-title { font-weight: bold; font-size: 15px; color: var(--primary); margin-bottom: 6px; }
+    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #eef2ff; color: var(--primary); border: 1px solid #c7d2fe; }
+
+    /* マップ */
     #right { flex: 1; position: relative; }
     #map { width: 100%; height: 100%; }
     
     .map-overlay-btn {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 1000; background: var(--panel); color: white; border: 1px solid var(--border);
-      padding: 8px 16px; border-radius: 20px; cursor: pointer; display: none;
+      z-index: 1000; background: var(--panel); color: var(--text); border: 1px solid var(--primary);
+      padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* Mobile */
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       #app { flex-direction: column; overflow: auto; }
       #left { width: 100%; height: auto; border-right: 0; }
-      #map { height: 300px; }
+      #map { height: 400px; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <strong><i class="fas fa-graduation-cap"></i> Kids School Finder</strong>
-  <div id="stat-info" style="font-size: 12px; color: var(--muted);"></div>
+  <strong><i class="fas fa-search-location"></i> こどもスクールナビ 🗺️</strong>
+  <div style="font-size: 12px; color: var(--muted);">地図を動かして「再検索」もOK</div>
 </header>
 
 <div id="app">
   <aside id="left">
     <div class="scroll-area">
-      <div class="filter-group">
-        <div style="display: flex; gap: 8px;">
-          <div style="flex: 1;">
-            <label>カテゴリ</label>
-            <select id="category">
-              <option value="school">一般学習塾・学校</option>
-              <option value="kindergarten">幼稚園・保育園</option>
-              <option value="language_school">英語・語学教室</option>
-              <option value="music_school">音楽教室</option>
-              <option value="arts_centre">絵画・カルチャー</option>
-              <option value="sports_centre">体操・スポーツ</option>
-              <option value="all">すべて表示</option>
-            </select>
+      <div class="search-card">
+        <div class="form-group">
+          <label><i class="fas fa-map-marker-alt"></i> エリア・駅名で探す</label>
+          <div style="display:flex; gap:5px;">
+            <input type="text" id="area-input" placeholder="例：新宿区、横浜駅...">
+            <button class="btn-sub" onclick="geocodeSearch()"><i class="fas fa-search"></i></button>
           </div>
-          <div style="width: 100px;">
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-th-list"></i> カテゴリ</label>
+          <select id="category">
+            <option value="all">すべて表示</option>
+            <option value="tutoring_centre" selected>学習塾・くもん</option>
+            <option value="language_school">英語・英会話</option>
+            <option value="music_school">ピアノ・音楽教室</option>
+            <option value="sports_centre">体操・スイミング</option>
+            <option value="dance_school">ダンススクール</option>
+            <option value="coding_school">プログラミング</option>
+            <option value="kindergarten">保育園・幼稚園</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <div style="flex:1">
             <label>半径</label>
             <select id="radius">
               <option value="1000">1km</option>
-              <option value="3000" selected>3km</option>
+              <option value="2000" selected>2km</option>
               <option value="5000">5km</option>
             </select>
           </div>
+          <div style="flex:1">
+            <label>対象年齢</label>
+            <select id="age-filter">
+              <option value="all">すべて</option>
+              <option value="infant">幼児 (0-6歳)</option>
+              <option value="elementary">小学生</option>
+              <option value="junior">中学生以上</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-container">
+          <button id="search-btn" class="btn-main" onclick="searchCurrentLocation()">
+            <i class="fas fa-crosshairs"></i> 現在地で検索
+          </button>
         </div>
       </div>
 
-      <button id="search-btn" class="btn-main">現在地周辺を検索</button>
-
-      <div style="margin-top: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h4 style="margin:0; font-size: 14px;">検索結果 <span id="count">0</span>件</h4>
-          <select id="sort-order" style="width: auto; padding: 4px; font-size: 12px;">
-            <option value="dist">距離が近い順</option>
-            <option value="name">名前順</option>
-          </select>
-        </div>
-        <ul id="list"></ul>
+      <div id="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h4 style="margin:0;">検索結果 <span id="count" style="color:var(--primary)">0</span> 件</h4>
       </div>
+      <ul id="list" style="list-style:none; padding:0;"></ul>
     </div>
   </aside>
 
   <main id="right">
-    <button id="move-search-btn" class="map-overlay-btn">このエリアで再検索</button>
+    <button id="move-search-btn" class="map-overlay-btn" style="display:none;" onclick="searchAtMapCenter()">
+      <i class="fas fa-redo"></i> このエリアで再検索
+    </button>
     <div id="map"></div>
   </main>
 </div>
 
 <script>
-  // --- 1. 設定 & 初期化 ---
-  const CONFIG = {
-    categories: {
-      school: { color: '#38bdf8', icon: 'fa-book' },
-      kindergarten: { color: '#f472b6', icon: 'fa-child' },
-      language_school: { color: '#fbbf24', icon: 'fa-language' },
-      music_school: { color: '#a78bfa', icon: 'fa-music' },
-      arts_centre: { color: '#fb7185', icon: 'fa-palette' },
-      sports_centre: { color: '#4ade80', icon: 'fa-running' }
-    }
+  // カテゴリ設定（OSMタグとの紐付け）
+  const CAT_CONFIG = {
+    tutoring_centre: { color: '#4f46e5', icon: 'fa-pencil-alt', label: '塾' },
+    language_school: { color: '#f59e0b', icon: 'fa-language', label: '英語' },
+    music_school: { color: '#ec4899', icon: 'fa-music', label: '音楽' },
+    sports_centre: { color: '#10b981', icon: 'fa-running', label: 'スポーツ' },
+    kindergarten: { color: '#ef4444', icon: 'fa-child', label: '園' },
+    all: { color: '#64748b', icon: 'fa-school', label: 'スクール' }
   };
 
+  // マップ初期化（明るい OSM 標準タイル）
   const map = L.map('map').setView([35.681, 139.767], 14);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap'
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
   let markers = L.layerGroup().addTo(map);
-  let favorites = JSON.parse(localStorage.getItem('fav_schools') || '[]');
-  let currentData = [];
-  let userPos = null;
+  let currentResults = [];
 
-  // --- 2. APIクエリ作成 ---
-  function buildQuery(lat, lon, radius, cat) {
-    const types = cat === "all" ? Object.keys(CONFIG.categories) : [cat];
-    const filters = types.map(t => `nwr["amenity"="${t}"](around:${radius},${lat},${lon});`).join("");
-    return `[out:json][timeout:25];(${filters});out center;`;
+  // --- 住所検索 (Geocoding) ---
+  async function geocodeSearch() {
+    const query = document.getElementById('area-input').value;
+    if(!query) return alert("場所を入力してください");
+    
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if(data.length > 0) {
+        const target = data[0];
+        map.setView([target.lat, target.lon], 15);
+        searchAtMapCenter();
+      } else {
+        alert("場所が見つかりませんでした");
+      }
+    } catch(e) { alert("検索エラーが発生しました"); }
   }
 
-  // --- 3. 検索実行 ---
-  async function performSearch(lat, lon, isMoving = false) {
+  // --- 施設検索 (Overpass API) ---
+  async function performSearch(lat, lon) {
     const radius = document.getElementById("radius").value;
     const cat = document.getElementById("category").value;
     const btn = document.getElementById("search-btn");
     
     btn.disabled = true;
-    btn.textContent = "検索中...";
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 検索中...`;
     document.getElementById("move-search-btn").style.display = "none";
 
+    const amenityFilter = cat === "all" 
+      ? `nwr["amenity"~"school|kindergarten|tutoring_centre|language_school|music_school"]`
+      : `nwr["amenity"="${cat}"]`;
+    
+    const query = `[out:json][timeout:25];(${amenityFilter}(around:${radius},${lat},${lon}););out center;`;
+
     try {
-      const q = buildQuery(lat, lon, radius, cat);
       const res = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
-        body: "data=" + encodeURIComponent(q)
+        body: "data=" + encodeURIComponent(query)
       });
       const data = await res.json();
-      
-      currentData = data.elements.map(e => {
-        const pos = [e.lat || e.center.lat, e.lon || e.center.lon];
-        const dist = L.latLng(lat, lon).distanceTo(L.latLng(pos));
-        return { ...e, pos, dist };
-      });
+      currentResults = data.elements.map(e => ({
+        ...e,
+        lat: e.lat || e.center.lat,
+        lon: e.lon || e.center.lon,
+        dist: L.latLng(lat, lon).distanceTo(L.latLng(e.lat || e.center.lat, e.lon || e.center.lon))
+      })).sort((a,b) => a.dist - b.dist);
 
       renderUI();
     } catch (e) {
       alert("データの取得に失敗しました。");
     } finally {
       btn.disabled = false;
-      btn.textContent = "現在地周辺を検索";
+      btn.innerHTML = `<i class="fas fa-crosshairs"></i> 現在地で検索`;
     }
   }
 
-  // --- 4. 描画ロジック ---
   function renderUI() {
     const listEl = document.getElementById("list");
-    const sort = document.getElementById("sort-order").value;
-    
-    // ソート
-    currentData.sort((a, b) => sort === "dist" ? a.dist - b.dist : (a.tags.name || "").localeCompare(b.tags.name || ""));
-
     listEl.innerHTML = "";
     markers.clearLayers();
 
-    currentData.forEach(item => {
+    currentResults.forEach(item => {
       const tags = item.tags || {};
       const name = tags.name || tags["name:ja"] || "名称不明の施設";
-      const catInfo = CONFIG.categories[tags.amenity] || { color: '#ccc', icon: 'fa-location-dot' };
-      const isFav = favorites.includes(item.id);
+      const amenity = tags.amenity || "school";
+      const conf = CAT_CONFIG[amenity] || CAT_CONFIG.all;
 
-      // マーカー追加
-      const markerIcon = L.divIcon({
-        html: `<div style="background:${catInfo.color}; width:30px; height:30px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; color:white;">
-                <i class="fas ${catInfo.icon}" style="font-size:12px;"></i>
-               </div>`,
-        className: '',
-        iconSize: [30, 30]
-      });
-
-      const m = L.marker(item.pos, { icon: markerIcon }).addTo(markers);
+      // マーカー作成
+      const m = L.marker([item.lat, item.lon]).addTo(markers);
       m.bindPopup(`<strong>${name}</strong><br>${tags["addr:full"] || ""}`);
 
-      // リスト追加
+      // リスト作成
       const li = document.createElement("li");
       li.className = "list-item";
       li.innerHTML = `
-        <button class="fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFav(${item.id}, event)">
-          <i class="${isFav ? 'fas' : 'far'} fa-star"></i>
-        </button>
         <div class="item-title">${name}</div>
-        <div class="item-meta">
-          <span class="tag" style="color:${catInfo.color}">${tags.amenity}</span>
-          <span><i class="fas fa-walking"></i> ${(item.dist/1000).toFixed(1)}km</span>
+        <div style="font-size:12px; color:var(--muted);"><i class="fas fa-map-marker-alt"></i> 徒歩約${Math.round(item.dist/80)}分 (${Math.round(item.dist)}m)</div>
+        <div class="tag-row">
+          <span class="tag"><i class="fas ${conf.icon}"></i> ${conf.label}</span>
+          ${tags.website ? `<span class="tag" style="background:#fff7ed; color:#c2410c; border-color:#fed7aa;">HPあり</span>` : ''}
         </div>
       `;
       li.onclick = () => {
-        map.flyTo(item.pos, 16);
+        map.flyTo([item.lat, item.lon], 16);
         m.openPopup();
       };
       listEl.appendChild(li);
     });
-
-    document.getElementById("count").textContent = currentData.length;
+    document.getElementById("count").textContent = currentResults.length;
   }
 
-  // --- 5. インタラクション ---
-  function toggleFav(id, event) {
-    event.stopPropagation();
-    if (favorites.includes(id)) {
-      favorites = favorites.filter(f => f !== id);
-    } else {
-      favorites.push(id);
-    }
-    localStorage.setItem('fav_schools', JSON.stringify(favorites));
-    renderUI();
-  }
-
-  // 現在地ボタン
-  document.getElementById("search-btn").onclick = () => {
-    navigator.geolocation.getCurrentPosition(pos => {
-      userPos = [pos.coords.latitude, pos.coords.longitude];
-      map.setView(userPos, 14);
-      L.circleMarker(userPos, { radius: 8, color: '#fff', fillOpacity: 1, fillColor: '#38bdf8' }).addTo(map);
-      performSearch(userPos[0], userPos[1]);
+  // ハンドラ
+  function searchCurrentLocation() {
+    navigator.geolocation.getCurrentPosition(p => {
+      const lat = p.coords.latitude;
+      const lon = p.coords.longitude;
+      map.setView([lat, lon], 15);
+      L.circleMarker([lat, lon], { radius: 8, color: '#fff', fillOpacity: 1, fillColor: '#4f46e5' }).addTo(map);
+      performSearch(lat, lon);
     });
-  };
+  }
 
-  // 地図移動検知
+  function searchAtMapCenter() {
+    const center = map.getCenter();
+    performSearch(center.lat, center.lng);
+  }
+
   map.on('moveend', () => {
     document.getElementById("move-search-btn").style.display = "block";
   });
-
-  document.getElementById("move-search-btn").onclick = () => {
-    const center = map.getCenter();
-    performSearch(center.lat, center.lng, true);
-  };
-
-  document.getElementById("sort-order").onchange = renderUI;
-
 </script>
 </body>
 </html>
